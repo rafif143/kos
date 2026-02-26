@@ -62,7 +62,7 @@
 				type: custBookingType,
 				start_date: custStartDate,
 				end_date: custEndDate,
-				status: 'pending',
+				status: 'active',
 				amount: bookingRoom.price
 			};
 			const newBooking = await store.addBooking(bookingData);
@@ -798,44 +798,8 @@
 					</div>
 				{/if}
 
-				<!-- Booking Type -->
-				<div class="space-y-2">
-					<label for="custBookingType" class="text-sm font-medium">Tipe Booking</label>
-					<Select.Root
-						type="single"
-						value={custBookingType}
-						onValueChange={(v) => {
-							if (v) {
-								custBookingType = v;
-								// Auto-adjust end date based on type
-								const start = new Date(custStartDate);
-								if (v === 'monthly') {
-									start.setMonth(start.getMonth() + 1);
-								} else if (v === 'yearly') {
-									start.setFullYear(start.getFullYear() + 1);
-								} else {
-									start.setDate(start.getDate() + 1);
-								}
-								custEndDate = start.toISOString().split('T')[0];
-							}
-						}}
-					>
-						<Select.Trigger id="custBookingType" class="w-full"
-							>{custBookingType === 'monthly'
-								? 'Bulanan'
-								: custBookingType === 'yearly'
-									? 'Tahunan'
-									: 'Harian'}</Select.Trigger
-						>
-						<Select.Content>
-							<Select.Item value="daily">Harian</Select.Item>
-							<Select.Item value="monthly">Bulanan</Select.Item>
-							<Select.Item value="yearly">Tahunan</Select.Item>
-						</Select.Content>
-					</Select.Root>
-				</div>
+				<!-- Booking Type removed: Monthly only -->
 
-				<!-- Dates -->
 				<div class="grid grid-cols-2 gap-3">
 					<div class="space-y-2">
 						<label for="custStart" class="text-sm font-medium">Tanggal Mulai</label>
@@ -843,13 +807,27 @@
 							id="custStart"
 							type="date"
 							bind:value={custStartDate}
+							oninput={(e) => {
+								if (e.target.value) {
+									const start = new Date(e.target.value);
+									start.setMonth(start.getMonth() + 1);
+									custEndDate = start.toISOString().split('T')[0];
+								}
+							}}
 							required
 							min={new Date().toISOString().split('T')[0]}
 						/>
 					</div>
 					<div class="space-y-2">
 						<label for="custEnd" class="text-sm font-medium">Tanggal Selesai</label>
-						<Input id="custEnd" type="date" bind:value={custEndDate} required min={custStartDate} />
+						<Input
+							id="custEnd"
+							type="date"
+							bind:value={custEndDate}
+							required
+							readonly
+							class="cursor-not-allowed bg-muted"
+						/>
 					</div>
 				</div>
 

@@ -100,7 +100,7 @@
 		formType = 'monthly';
 		formStartDate = '';
 		formEndDate = '';
-		formStatus = 'pending';
+		formStatus = 'active';
 		formAmount = 0;
 		bookingDialogOpen = true;
 	}
@@ -374,9 +374,9 @@
 											{summary.dueCount} payment{summary.dueCount > 1 ? 's' : ''} due
 										</p>
 									{:else if summary.futureCount > 0}
-										<p class="text-xs text-green-500">Lunas bulan ini</p>
+										<p class="text-xs font-medium text-green-600">Lunas bulan ini</p>
 									{:else if summary.total > 0}
-										<p class="text-xs text-green-500">Fully paid</p>
+										<p class="text-xs font-medium text-green-600">Fully paid</p>
 									{/if}
 								</div>
 								<div class="flex gap-1">
@@ -473,8 +473,13 @@
 									>
 								</div>
 							{:else if summary.futureCount > 0}
-								<div class="rounded-lg bg-blue-500/10 px-3 py-1.5">
-									<span class="font-medium text-blue-500">Tagihan bulan berikutnya</span>
+								<div class="flex gap-2">
+									<div class="rounded-lg bg-green-500/10 px-3 py-1.5">
+										<span class="font-medium text-green-600">Lunas Bulan Ini</span>
+									</div>
+									<div class="rounded-lg bg-blue-500/10 px-3 py-1.5">
+										<span class="font-medium text-blue-500">Bulan depan belum lunas</span>
+									</div>
 								</div>
 							{/if}
 						</div>
@@ -484,9 +489,16 @@
 						<!-- Payment rows -->
 						<div class="divide-y">
 							{#each bpayments as payment}
+								{@const isFuture =
+									payment.status === 'pending' &&
+									payment.due_date &&
+									new Date(payment.due_date) >
+										new Date(new Date().setDate(new Date().getDate() + 7))}
 								<div
 									class="flex items-center justify-between px-4 py-3 {payment.status === 'pending'
-										? 'bg-orange-500/5'
+										? isFuture
+											? 'bg-blue-500/5'
+											: 'bg-orange-500/5'
 										: ''}"
 								>
 									<div class="flex items-center gap-3">
@@ -498,9 +510,11 @@
 											</div>
 										{:else if payment.status === 'pending'}
 											<div
-												class="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/10"
+												class="flex h-8 w-8 items-center justify-center rounded-full {isFuture
+													? 'bg-blue-500/10'
+													: 'bg-orange-500/10'}"
 											>
-												<Clock class="h-4 w-4 text-orange-500" />
+												<Clock class="h-4 w-4 {isFuture ? 'text-blue-500' : 'text-orange-500'}" />
 											</div>
 										{:else}
 											<div
@@ -528,8 +542,13 @@
 												><CircleCheck class="h-3 w-3" /> {i18n.t('paid')}</Badge
 											>
 										{:else if payment.status === 'pending'}
-											<Badge variant="secondary" class="gap-1"
-												><Clock class="h-3 w-3" /> {i18n.t('pending')}</Badge
+											<Badge
+												variant="secondary"
+												class="gap-1 {isFuture
+													? 'border-blue-200 bg-blue-100 text-blue-700 hover:bg-blue-200'
+													: ''}"
+												><Clock class="h-3 w-3" />
+												{isFuture ? 'Bulan Depan' : i18n.t('pending')}</Badge
 											>
 										{:else if payment.status === 'cancelled'}
 											<Badge variant="outline" class="gap-1 text-muted-foreground"
@@ -544,7 +563,7 @@
 						</div>
 
 						<!-- Action bar -->
-						{#if booking.status === 'active' && nextPending}
+						{#if ['active', 'pending'].includes(booking.status) && nextPending}
 							<div
 								class="flex flex-col gap-2 border-t bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between"
 							>
@@ -567,20 +586,21 @@
 										onclick={() => confirmCheckout(booking)}
 									>
 										<LogOut class="h-4 w-4" />
-										{i18n.t('checkoutBtn')}
+										{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
 									</Button>
 								</div>
 							</div>
-						{:else if booking.status === 'active' && !nextPending}
+						{:else if ['active', 'pending'].includes(booking.status) && !nextPending}
 							<div class="flex items-center justify-between border-t bg-green-500/5 p-4">
 								<span class="text-sm font-medium text-green-600">{i18n.t('allPaid')}</span>
 								<Button
 									variant="outline"
 									size="sm"
-									class="gap-1.5"
+									class="hover:text-destructive-foreground gap-1.5 text-destructive hover:bg-destructive"
 									onclick={() => confirmCheckout(booking)}
 								>
-									<LogOut class="h-4 w-4" /> Checkout
+									<LogOut class="h-4 w-4" />
+									{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
 								</Button>
 							</div>
 						{/if}
@@ -651,23 +671,7 @@
 				</div>
 			</div>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<div class="space-y-2">
-					<label for="bookingType" class="text-sm font-medium">Type</label>
-					<Select.Root
-						type="single"
-						value={formType}
-						onValueChange={(v) => {
-							if (v) formType = v;
-						}}
-					>
-						<Select.Trigger id="bookingType" class="w-full">{formType}</Select.Trigger>
-						<Select.Content>
-							<Select.Item value="daily">Daily</Select.Item>
-							<Select.Item value="monthly">Monthly</Select.Item>
-							<Select.Item value="yearly">Yearly</Select.Item>
-						</Select.Content>
-					</Select.Root>
-				</div>
+				<!-- Booking Type removed -->
 				<div class="space-y-2">
 					<label for="bookingStatus" class="text-sm font-medium">Status</label>
 					<Select.Root
@@ -690,11 +694,30 @@
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div class="space-y-2">
 					<label for="bookingStart" class="text-sm font-medium">Start Date *</label>
-					<Input id="bookingStart" type="date" bind:value={formStartDate} required />
+					<Input
+						id="bookingStart"
+						type="date"
+						bind:value={formStartDate}
+						oninput={(e) => {
+							if (e.target.value) {
+								const d = new Date(e.target.value);
+								d.setMonth(d.getMonth() + 1);
+								formEndDate = d.toISOString().split('T')[0];
+							}
+						}}
+						required
+					/>
 				</div>
 				<div class="space-y-2">
 					<label for="bookingEnd" class="text-sm font-medium">End Date *</label>
-					<Input id="bookingEnd" type="date" bind:value={formEndDate} required />
+					<Input
+						id="bookingEnd"
+						type="date"
+						bind:value={formEndDate}
+						required
+						class="cursor-not-allowed bg-muted"
+						readonly
+					/>
 				</div>
 			</div>
 			<div class="space-y-2">
@@ -802,20 +825,22 @@
 									<CircleDollarSign class="h-3 w-3" /> Mark Paid
 								</Button>
 							{:else}
-								<Button
-									size="sm"
-									class="h-7 gap-1.5 text-xs"
-									onclick={() => handlePay(payment)}
-									disabled={isCheckingOut}
-								>
-									{#if isCheckingOut}
-										<div
-											class="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"
-										></div>
-									{:else}
-										<CircleDollarSign class="h-3 w-3" /> Pay Now
-									{/if}
-								</Button>
+								<div class="flex gap-2">
+									<Button
+										size="sm"
+										class="h-7 gap-1.5 text-xs"
+										onclick={() => handlePay(payment)}
+										disabled={isCheckingOut}
+									>
+										{#if isCheckingOut}
+											<div
+												class="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"
+											></div>
+										{:else}
+											<CircleDollarSign class="h-3 w-3" /> Pay Now
+										{/if}
+									</Button>
+								</div>
 							{/if}
 						{:else}
 							<Badge variant="destructive">{payment.status}</Badge>
@@ -824,7 +849,22 @@
 				{/each}
 			</div>
 		{/if}
-		<Dialog.Footer>
+		<Dialog.Footer class="flex flex-row justify-between sm:justify-between">
+			{#if selectedBookingForPay && ['active', 'pending'].includes(selectedBookingForPay.status)}
+				<Button
+					variant="outline"
+					class="hover:text-destructive-foreground text-destructive hover:bg-destructive"
+					onclick={() => {
+						payDialogOpen = false;
+						confirmCheckout(selectedBookingForPay);
+					}}
+				>
+					<LogOut class="mr-2 h-4 w-4" />
+					{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+				</Button>
+			{:else}
+				<div></div>
+			{/if}
 			<Button variant="outline" onclick={() => (payDialogOpen = false)}>Close</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
