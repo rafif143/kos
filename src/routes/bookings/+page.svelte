@@ -182,7 +182,15 @@
 				})
 	);
 
-	const pendingPaymentCount = $derived(allPayments.filter((p) => p.status === 'pending').length);
+	const pendingPaymentCount = $derived(
+		allPayments.filter((p) => {
+			if (p.status !== 'pending') return false;
+			if (!p.due_date) return true;
+			const nextWeek = new Date();
+			nextWeek.setDate(nextWeek.getDate() + 7);
+			return new Date(p.due_date) <= nextWeek;
+		}).length
+	);
 
 	// Active bookings that need payment action
 	const activeBookingsWithPayments = $derived(
@@ -361,10 +369,12 @@
 											>/{booking.type === 'daily' ? 'total' : 'mo'}</span
 										>
 									</p>
-									{#if summary.pending > 0}
+									{#if summary.dueCount > 0}
 										<p class="text-xs text-orange-500">
-											{summary.pending} payment{summary.pending > 1 ? 's' : ''} due
+											{summary.dueCount} payment{summary.dueCount > 1 ? 's' : ''} due
 										</p>
+									{:else if summary.futureCount > 0}
+										<p class="text-xs text-green-500">Lunas bulan ini</p>
 									{:else if summary.total > 0}
 										<p class="text-xs text-green-500">Fully paid</p>
 									{/if}
@@ -456,11 +466,15 @@
 										.length}</span
 								>
 							</div>
-							{#if summary.pending > 0}
+							{#if summary.dueCount > 0}
 								<div class="rounded-lg bg-orange-500/10 px-3 py-1.5">
 									<span class="font-medium text-orange-500"
-										>{i18n.t('monthsDue')}: {summary.pending}</span
+										>{i18n.t('monthsDue')}: {summary.dueCount}</span
 									>
+								</div>
+							{:else if summary.futureCount > 0}
+								<div class="rounded-lg bg-blue-500/10 px-3 py-1.5">
+									<span class="font-medium text-blue-500">Tagihan bulan berikutnya</span>
 								</div>
 							{/if}
 						</div>

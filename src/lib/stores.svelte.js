@@ -374,11 +374,23 @@ function createStore() {
 			return payments.filter(p => p.booking_id === bookingId);
 		},
 		getPaymentSummary(bookingId) {
-			const bp = payments.filter(p => p.booking_id === bookingId);
+			const bp = payments.filter((p) => p.booking_id === bookingId);
 			const total = bp.reduce((s, p) => s + p.amount, 0);
-			const paid = bp.filter(p => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
-			const pending = bp.filter(p => p.status === 'pending').length;
-			return { total, paid, remaining: total - paid, pending };
+			const paid = bp.filter((p) => p.status === 'paid').reduce((s, p) => s + p.amount, 0);
+			const pendingItems = bp.filter((p) => p.status === 'pending');
+			const pending = pendingItems.length;
+
+			const todayDate = new Date();
+			const nextWeek = new Date(todayDate);
+			nextWeek.setDate(nextWeek.getDate() + 7);
+
+			const dueCount = pendingItems.filter((p) => {
+				if (!p.due_date) return true;
+				return new Date(p.due_date) <= nextWeek;
+			}).length;
+			const futureCount = pending - dueCount;
+
+			return { total, paid, remaining: total - paid, pending, dueCount, futureCount };
 		},
 	};
 }
