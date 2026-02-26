@@ -96,39 +96,6 @@
 				</Card.Root>
 			{/each}
 		</div>
-
-		<!-- Recent Bookings -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>{i18n.t('recentHistory')}</Card.Title>
-			</Card.Header>
-			<Card.Content>
-				<div class="space-y-3">
-					{#each store.bookings.slice(-5).reverse() as booking}
-						<div class="flex items-center justify-between rounded-lg border p-3">
-							<div>
-								<p class="font-medium">{store.getUserName(booking.user_id)}</p>
-								<p class="text-sm text-muted-foreground">{store.getRoomName(booking.room_id)}</p>
-							</div>
-							<div class="text-right">
-								<Badge
-									variant={booking.status === 'active'
-										? 'default'
-										: booking.status === 'pending'
-											? 'secondary'
-											: 'outline'}
-								>
-									{booking.status}
-								</Badge>
-								<p class="text-sm text-muted-foreground">
-									Rp {booking.amount.toLocaleString('id-ID')}
-								</p>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</Card.Content>
-		</Card.Root>
 	{:else}
 		<!-- ═══ CUSTOMER HOME ═══ -->
 		<div>
