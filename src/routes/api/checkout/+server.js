@@ -21,8 +21,8 @@ export async function POST({ request }) {
                 amount: amount,
                 description: description || `Payment #${paymentId}`,
                 payerEmail: payerEmail || 'guest@example.com',
-                successRedirectUrl: successRedirectUrl || `${env.PUBLIC_SITE_URL || 'http://localhost:5173'}/bookings?payment=success`,
-                failureRedirectUrl: failureRedirectUrl || `${env.PUBLIC_SITE_URL || 'http://localhost:5173'}/bookings?payment=failed`,
+                successRedirectUrl: successRedirectUrl || `${env.PUBLIC_SITE_URL || 'https://kos-management.netlify.app'}/bookings?payment=success`,
+                failureRedirectUrl: failureRedirectUrl || `${env.PUBLIC_SITE_URL || 'https://kos-management.netlify.app'}/bookings?payment=failed`,
                 currency: 'IDR'
             }
         });
