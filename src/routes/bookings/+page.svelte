@@ -820,12 +820,12 @@
 						{#if payment.status === 'paid'}
 							<Badge variant="default" class="gap-1"><CircleCheck class="h-3 w-3" /> Paid</Badge>
 						{:else if payment.status === 'pending'}
-							{#if isAdmin}
-								<Button size="sm" class="h-7 gap-1.5 text-xs" onclick={() => handlePay(payment)}>
-									<CircleDollarSign class="h-3 w-3" /> Mark Paid
-								</Button>
-							{:else}
-								<div class="flex gap-2">
+							<div class="flex gap-2">
+								{#if isAdmin}
+									<Button size="sm" class="h-7 gap-1.5 text-xs" onclick={() => handlePay(payment)}>
+										<CircleDollarSign class="h-3 w-3" /> Mark Paid
+									</Button>
+								{:else}
 									<Button
 										size="sm"
 										class="h-7 gap-1.5 text-xs"
@@ -840,8 +840,20 @@
 											<CircleDollarSign class="h-3 w-3" /> Pay Now
 										{/if}
 									</Button>
-								</div>
-							{/if}
+								{/if}
+								<Button
+									variant="outline"
+									size="sm"
+									class="hover:text-destructive-foreground h-7 gap-1.5 text-xs text-destructive hover:bg-destructive"
+									onclick={() => {
+										payDialogOpen = false;
+										confirmCheckout(selectedBookingForPay);
+									}}
+								>
+									<LogOut class="h-3 w-3" />
+									{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+								</Button>
+							</div>
 						{:else}
 							<Badge variant="destructive">{payment.status}</Badge>
 						{/if}
@@ -850,7 +862,9 @@
 			</div>
 		{/if}
 		<Dialog.Footer class="flex flex-row justify-between sm:justify-between">
-			{#if selectedBookingForPay && ['active', 'pending'].includes(selectedBookingForPay.status)}
+			{#if selectedBookingForPay && ['active', 'pending'].includes(selectedBookingForPay.status) && !store
+					.getBookingPayments(selectedBookingForPay.id)
+					.some((p) => p.status === 'pending')}
 				<Button
 					variant="outline"
 					class="hover:text-destructive-foreground text-destructive hover:bg-destructive"
