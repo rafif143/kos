@@ -283,9 +283,19 @@ function createStore() {
 				}
 
 				// Otherwise, dynamic based on payments
+				const today = new Date();
+				const h5 = new Date(today);
+				h5.setDate(h5.getDate() + 5);
+
+				const hasDuePayments = bPayments.some((p) => {
+					if (p.status !== 'pending') return false;
+					if (!p.due_date) return true;
+					return new Date(p.due_date) <= h5;
+				});
+
 				return {
 					...b,
-					status: hasPending ? 'pending' : 'active'
+					status: hasDuePayments ? 'pending' : 'active'
 				};
 			});
 		},
@@ -448,6 +458,39 @@ function createStore() {
 				room: rooms.find((r) => r.id === booking.room_id)?.name
 			});
 		},
+		async cancelBooking(bookingId) {
+			const booking = bookings.find((b) => b.id === bookingId);
+			if (!booking) return;
+
+			const today = new Date().toISOString().split('T')[0];
+			await supabase
+				.from('bookings')
+				.update({ status: 'cancelled', end_date: today })
+				.eq('id', bookingId);
+			const bIdx = bookings.findIndex((b) => b.id === bookingId);
+			if (bIdx !== -1) bookings[bIdx] = { ...bookings[bIdx], status: 'cancelled', end_date: today };
+
+			await supabase.from('rooms').update({ status: 'available' }).eq('id', booking.room_id);
+			const rIdx = rooms.findIndex((r) => r.id === booking.room_id);
+			if (rIdx !== -1) rooms[rIdx] = { ...rooms[rIdx], status: 'available' };
+
+			await supabase
+				.from('payments')
+				.update({ status: 'cancelled' })
+				.eq('booking_id', bookingId)
+				.eq('status', 'pending');
+			for (let i = 0; i < payments.length; i++) {
+				if (payments[i].booking_id === bookingId && payments[i].status === 'pending') {
+					payments[i] = { ...payments[i], status: 'cancelled' };
+				}
+			}
+
+			await addHistoryRecord('booking_cancelled', {
+				booking_id: bookingId,
+				user: users.find((u) => u.id === booking.user_id)?.full_name,
+				room: rooms.find((r) => r.id === booking.room_id)?.name
+			});
+		},
 
 		// ─── COMPUTED / HELPERS ───
 		get history() {
@@ -485,12 +528,12 @@ function createStore() {
 			const pending = pendingItems.length;
 
 			const todayDate = new Date();
-			const nextWeek = new Date(todayDate);
-			nextWeek.setDate(nextWeek.getDate() + 7);
+			const h5Date = new Date(todayDate);
+			h5Date.setDate(h5Date.getDate() + 5);
 
 			const dueCount = pendingItems.filter((p) => {
 				if (!p.due_date) return true;
-				return new Date(p.due_date) <= nextWeek;
+				return new Date(p.due_date) <= h5Date;
 			}).length;
 			const futureCount = pending - dueCount;
 

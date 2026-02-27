@@ -275,6 +275,24 @@
 		}
 	}
 
+	let cancelDialogOpen = $state(false);
+	let cancelBookingObj = $state(null);
+
+	function confirmCancel(booking) {
+		cancelBookingObj = booking;
+		cancelDialogOpen = true;
+	}
+
+	async function handleCancel() {
+		try {
+			await store.cancelBooking(cancelBookingObj.id);
+			toast.success('Pemesanan berhasil dibatalkan.');
+			cancelDialogOpen = false;
+		} catch {
+			toast.error('Gagal membatalkan pemesanan.');
+		}
+	}
+
 	function formatDateTime(d) {
 		if (!d) return '—';
 		try {
@@ -493,7 +511,7 @@
 									payment.status === 'pending' &&
 									payment.due_date &&
 									new Date(payment.due_date) >
-										new Date(new Date().setDate(new Date().getDate() + 7))}
+										new Date(new Date().setDate(new Date().getDate() + 5))}
 								<div
 									class="flex items-center justify-between px-4 py-3 {payment.status === 'pending'
 										? isFuture
@@ -583,10 +601,17 @@
 									<Button
 										variant="outline"
 										class="hover:text-destructive-foreground gap-1.5 text-destructive hover:bg-destructive"
-										onclick={() => confirmCheckout(booking)}
+										onclick={() =>
+											summary.paid === 0 && !isAdmin
+												? confirmCancel(booking)
+												: confirmCheckout(booking)}
 									>
-										<LogOut class="h-4 w-4" />
-										{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+										{#if summary.paid === 0 && !isAdmin}
+											<Ban class="h-4 w-4" /> Batalkan Booking
+										{:else}
+											<LogOut class="h-4 w-4" />
+											{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+										{/if}
 									</Button>
 								</div>
 							</div>
@@ -597,10 +622,17 @@
 									variant="outline"
 									size="sm"
 									class="hover:text-destructive-foreground gap-1.5 text-destructive hover:bg-destructive"
-									onclick={() => confirmCheckout(booking)}
+									onclick={() =>
+										summary.paid === 0 && !isAdmin
+											? confirmCancel(booking)
+											: confirmCheckout(booking)}
 								>
-									<LogOut class="h-4 w-4" />
-									{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+									{#if summary.paid === 0 && !isAdmin}
+										<Ban class="h-4 w-4" /> Batalkan Booking
+									{:else}
+										<LogOut class="h-4 w-4" />
+										{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+									{/if}
 								</Button>
 							</div>
 						{/if}
@@ -870,16 +902,48 @@
 					class="hover:text-destructive-foreground text-destructive hover:bg-destructive"
 					onclick={() => {
 						payDialogOpen = false;
-						confirmCheckout(selectedBookingForPay);
+						if (summary.paid === 0 && !isAdmin) {
+							confirmCancel(selectedBookingForPay);
+						} else {
+							confirmCheckout(selectedBookingForPay);
+						}
 					}}
 				>
-					<LogOut class="mr-2 h-4 w-4" />
-					{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+					{#if summary.paid === 0 && !isAdmin}
+						<Ban class="mr-2 h-4 w-4" /> Batalkan Booking
+					{:else}
+						<LogOut class="mr-2 h-4 w-4" />
+						{isAdmin ? 'Checkout / Kosongkan' : 'Ajukan Keluar'}
+					{/if}
 				</Button>
 			{:else}
 				<div></div>
 			{/if}
 			<Button variant="outline" onclick={() => (payDialogOpen = false)}>Close</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Cancel Booking Confirmation Dialog -->
+<Dialog.Root bind:open={cancelDialogOpen}>
+	<Dialog.Content class="sm:max-w-sm">
+		<Dialog.Header>
+			<Dialog.Title>Batalkan Booking</Dialog.Title>
+			<Dialog.Description>
+				{#if cancelBookingObj}
+					Apakah Anda yakin ingin membatalkan booking kamar <strong
+						>{store.getRoomName(cancelBookingObj.room_id)}</strong
+					>?
+					<br /><br />
+					Seluruh tagihan akan dibatalkan dan kamar akan kembali berstatus tersedia.
+				{/if}
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (cancelDialogOpen = false)}>Tutup</Button>
+			<Button variant="destructive" class="gap-1.5" onclick={handleCancel}>
+				<Ban class="h-4 w-4" /> Ya, Batalkan
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
